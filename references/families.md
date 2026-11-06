@@ -36,3 +36,7 @@ Photos need matching dates and sessions. Ask for them rather than reusing whatev
 ## Course case studies and small projects (APP, OS, DBMS, DIP)
 
 These vary the most. One OS case study template uses 14pt body text on a Letter page. Take the page size, margins and body size from `sections.txt` and `structure.txt`, and pass them through `Report(template, style={...})`. These templates are often short, so most of their pages may be kept and filled in place, with no cut at all.
+
+## Test section
+
+Dry run line.
