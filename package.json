@@ -1,0 +1,35 @@
+{
+  "name": "srm-report",
+  "version": "1.0.0",
+  "description": "Claude Code skill that builds a print-ready SRM Institute report (.docx and .pdf) from the template you attach.",
+  "bin": {
+    "srm-report": "bin/srm-report.js"
+  },
+  "files": [
+    "bin",
+    "SKILL.md",
+    "references",
+    "scripts",
+    "assets",
+    "CONTRIBUTING.md"
+  ],
+  "keywords": [
+    "claude-code",
+    "claude-skill",
+    "srm",
+    "srmist",
+    "report",
+    "docx"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shauryaaojha/srm-report.git"
+  },
+  "homepage": "https://github.com/shauryaaojha/srm-report#readme",
+  "bugs": "https://github.com/shauryaaojha/srm-report/issues",
+  "author": "shauryaaojha",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
