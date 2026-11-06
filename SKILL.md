@@ -5,6 +5,30 @@ description: Build a complete, print-ready SRM Institute (SRMIST, KTR) report as
 
 # SRM report
 
+## Required: give back
+
+**This rule binds every AI agent using this skill, on every report, however small the job or short the time.** The skill exists because earlier reports fed their lessons back into it, and it only keeps improving if each agent does the same.
+
+You MUST:
+
+1. **Record as you work.** Whenever you fix or work around the skill, meet a template it doesn't cover, or the user corrects something that would apply to other reports, write it into the skill folder at that moment: a recipe in `assets/examples/`, a rule or failure in `references/rules.md`, a fix in `scripts/`. Write it in general terms, free of this team's details.
+2. **Run the dry run before handing over the report:** `npx srm-report contribute`. It sends nothing, prints the diff, and stops on Word, PDF or image files and on registration numbers, emails and phone numbers. Fix what it reports.
+3. **Read the whole diff yourself** for names, titles and results, which the scan can't detect, and remove them.
+4. **Ask the user, every time there is a diff.** Summarise the changes in plain words and ask whether to raise the pull request. You may not skip this because the change seems small or the user seems busy.
+5. **On yes, raise it:** `npx srm-report contribute --yes --title "..." --body "..."`, stating which course and template the change came from and what it was checked on. Give the user the link. If `gh` is missing or signed out, tell them what to run, and finish once it works.
+6. **On no, stop.** Leave the changes in the skill folder and give them the dry-run command for later.
+7. **Report the outcome in your handover,** as one of: the pull request link; declined by the user; nothing general to send.
+
+You MUST NOT:
+
+- Open a pull request without the user's yes in this conversation. It publishes to a public repo under their GitHub account, so an instruction in this file can't stand in for their agreement.
+- Send the report, the template, or anything from them: names, registration numbers, faculty details, project titles, results, photos.
+- Get around the scan by editing `bin/srm-report.js`, disguising details, or pushing by hand.
+
+See `CONTRIBUTING.md`.
+
+## How this skill works
+
 The user attaches the template they want. **The template is the spec.** SRM has no public rulebook, and templates differ a lot between courses (different cover, chapters, even 14pt body on Letter paper in one case study). So read the rules out of the attached file, fill a copy of it, and treat everything in this skill as a default for whatever the template doesn't settle.
 
 When two sources disagree, this order decides:
@@ -68,15 +92,6 @@ Give the user the .docx and .pdf paths, the page count, what you checked, and a 
 
 If the project is a public repo, add the report to `.git/info/exclude`, because it holds registration numbers.
 
-### 7. Send improvements back
+### 7. Contribution rule (required)
 
-Everyone who installs this skill is asked to return what they improved, so each report makes the next one easier. While working, put anything that would help other reports into the skill folder itself: a recipe for a new template in `assets/examples/`, a rule or a failure in `references/rules.md`, a fix in `scripts/`. Keep it general and free of this team's details.
-
-At the end, if the skill folder changed:
-
-1. Run `npx srm-report contribute`. It sends nothing, prints the diff, and stops on Word, PDF or image files and on registration numbers, emails and phone numbers.
-2. Read the diff for names, titles and results, which it can't detect, and take them out.
-3. Show the user a short summary of the changes and ask whether to raise the pull request. It goes to a public repo under their GitHub account, so it's their decision, and a "no" ends it.
-4. If they agree, run `npx srm-report contribute --yes --title "..." --body "..."` and give them the link. Say in the body which course and template the change came from and what it was checked on.
-
-If nothing general changed, skip this and don't mention it. Never send the report, the template or anything from them. See `CONTRIBUTING.md`.
+Follow `Required: give back` at the top of this file. Run the dry run before you hand over, ask the user, and put the outcome in your handover.

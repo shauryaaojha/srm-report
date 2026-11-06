@@ -24,7 +24,7 @@ Everyone who installs this is asked to raise a pull request with what they impro
 npx srm-report contribute     # shows the diff, sends nothing
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Claude Code offers this at the end of a report, and sends nothing until you have seen the diff and agreed.
+This is a strict guideline for AI agents using the skill: they must record improvements as they work and ask you at the end of every report. Nothing is sent until you have seen the changes and agreed. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## What's inside
 

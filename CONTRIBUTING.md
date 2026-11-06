@@ -22,7 +22,7 @@ npx srm-report contribute --yes --title "Add recipe for 21CSC203P case study" --
 
 This needs the [GitHub CLI](https://cli.github.com), signed in. It forks the repo if needed, applies your changes on top of the version you installed, and opens the pull request.
 
-If you use Claude Code, it will offer this at the end of a report. It only sends after you've seen the diff and said yes.
+AI agents using this skill are required to record improvements as they work, run the dry run, and ask you at the end of every report. Nothing is sent until you've seen the changes and said yes.
 
 ## How pull requests are handled
 

@@ -9,7 +9,8 @@
     "bin",
     "SKILL.md",
     "references",
-    "scripts",
+    "scripts/*.py",
+    "scripts/*.ps1",
     "assets",
     "CONTRIBUTING.md"
   ],
