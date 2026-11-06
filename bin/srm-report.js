@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Installs the srm-report skill for Claude Code, and sends a user's improvements back as a pull request.
+// Installs the srm-report skill for AI coding agents, and sends a user's improvements back as a pull request.
 const { execFileSync } = require("child_process");
+const crypto = require("crypto");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -9,7 +10,16 @@ const OWNER = "shauryaaojha";
 const REPO = "srm-report";
 const PKG_ROOT = path.join(__dirname, "..");
 const SKILL_PATHS = ["SKILL.md", "references", "scripts", "assets"];
-const DEFAULT_DIR = path.join(os.homedir(), ".claude", "skills", REPO);
+// Global skill folders from each agent's own docs. `home` is what marks the agent as present on this machine.
+const TARGETS = [
+  { id: "agents", dir: [".agents", "skills"], reads: "Codex, Cursor, Gemini CLI, GitHub Copilot, Windsurf, OpenCode, Roo Code" },
+  { id: "claude", dir: [".claude", "skills"], reads: "Claude Code", home: ".claude" },
+  { id: "antigravity", dir: [".gemini", "config", "skills"], reads: "Antigravity", home: ".gemini" },
+  { id: "cline", dir: [".cline", "skills"], reads: "Cline", home: ".cline" },
+  { id: "kiro", dir: [".kiro", "skills"], reads: "Kiro", home: ".kiro" },
+];
+const SHARED = ["codex", "cursor", "gemini", "copilot", "windsurf", "opencode", "roo"]; // all read ~/.agents/skills
+const targetDir = (t) => path.join(os.homedir(), ...t.dir, REPO);
 // Reports and templates must never travel. Only text that improves the skill goes in a pull request.
 const BLOCKED_FILE = /\.(docx?|dotx|pdf|pptx?|xlsx?|png|jpe?g|gif|zip|tgz)$/i;
 const SKIP = /(^|[\\/])(__pycache__|\.git)([\\/]|$)|\.pyc$/;
@@ -19,10 +29,19 @@ const PERSONAL = [
   [/(?<![\d.])[6-9]\d{9}(?![\d.])/, "phone number"],
 ];
 
-const HELP = `srm-report: SRM report skill for Claude Code
+const HELP = `srm-report: SRM report skill for AI coding agents
 
-  npx srm-report install [--dir PATH] [--force]
-      Copy the skill to ${DEFAULT_DIR}. --force replaces an existing copy.
+  npx srm-report install
+      Install for every agent found on this machine. ~/.agents/skills is always included.
+
+  npx srm-report install --agent NAMES
+      Install for the named agents only, comma separated, or "all":
+      ${[...SHARED, ...TARGETS.slice(1).map((t) => t.id)].join(", ")}
+
+  npx srm-report install --dir PATH
+      Install to one folder, for any other agent. Then tell it to follow PATH/SKILL.md.
+
+      Add --force to replace an existing copy.
 
   npx srm-report contribute [--dir PATH]
       Dry run. Compare your copy with the version you installed and print the diff. Sends nothing.
@@ -69,18 +88,72 @@ function copySkill(from, to) {
   }
 }
 
-function install(opts) {
-  const dir = path.resolve(opts.dir || DEFAULT_DIR);
-  if (fs.existsSync(path.join(dir, "SKILL.md")) && !opts.force) {
-    die(`${dir} already has this skill, and may hold your own improvements.\nSend those first with "npx srm-report contribute", or pass --force to replace it.`);
+function chooseTargets(opts) {
+  if (opts.dir) return [{ path: path.resolve(opts.dir), reads: "the agent you point at it" }];
+  let picked;
+  if (opts.agent) {
+    const names = opts.agent.toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+    picked = names.includes("all") ? TARGETS : TARGETS.filter((t) => names.includes(t.id) || (t.id === "agents" && names.some((n) => SHARED.includes(n))));
+    const known = ["all", ...SHARED, ...TARGETS.map((t) => t.id)];
+    const bad = names.filter((n) => !known.includes(n));
+    if (bad.length || !picked.length) die(`unknown agent "${bad.join(", ") || opts.agent}". Known: ${known.join(", ")}`);
+  } else {
+    picked = TARGETS.filter((t) => !t.home || fs.existsSync(path.join(os.homedir(), t.home)));
   }
-  fs.mkdirSync(dir, { recursive: true });
-  copySkill(PKG_ROOT, dir);
+  return picked.map((t) => ({ path: targetDir(t), reads: t.reads }));
+}
+
+function skillHash(dir) {
+  const h = crypto.createHash("sha256");
+  const files = SKILL_PATHS.flatMap((p) => {
+    const full = path.join(dir, p);
+    if (!fs.existsSync(full)) return [];
+    return fs.statSync(full).isDirectory() ? listFiles(full).map((f) => path.join(p, f)) : [p];
+  }).sort();
+  for (const f of files) h.update(f.replace(/\\/g, "/")).update(fs.readFileSync(path.join(dir, f)));
+  return h.digest("hex");
+}
+
+function install(opts) {
   const { version } = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, "package.json"), "utf8"));
-  fs.writeFileSync(path.join(dir, "VERSION"), version + "\n");
-  console.log(`Installed srm-report ${version} to ${dir}`);
-  console.log("Claude Code picks it up in the next session.");
-  console.log('If you improve it while making a report, send it back: npx srm-report contribute');
+  let done = 0;
+  for (const t of chooseTargets(opts)) {
+    if (fs.existsSync(path.join(t.path, "SKILL.md")) && !opts.force) {
+      console.log(`Skipped ${t.path}: already there, and it may hold your improvements. Send them with "npx srm-report contribute", or pass --force to replace it.`);
+      continue;
+    }
+    for (const p of SKILL_PATHS) fs.rmSync(path.join(t.path, p), { recursive: true, force: true });
+    fs.mkdirSync(t.path, { recursive: true });
+    copySkill(PKG_ROOT, t.path);
+    fs.writeFileSync(path.join(t.path, "VERSION"), version + "\n");
+    fs.writeFileSync(path.join(t.path, "INSTALL_HASH"), skillHash(t.path) + "\n");
+    console.log(`Installed ${version} to ${t.path} (for ${t.reads})`);
+    done++;
+  }
+  if (done) {
+    console.log("Restart your agent so it finds the skill.");
+    console.log("If you improve it while making a report, send it back: npx srm-report contribute");
+  }
+}
+
+// With several copies installed, the one to send is the one that changed since install.
+function findCopy(opts) {
+  if (opts.dir) {
+    const d = path.resolve(opts.dir);
+    if (!fs.existsSync(path.join(d, "SKILL.md"))) die(`no skill found at ${d}`);
+    return d;
+  }
+  const copies = TARGETS.map(targetDir).filter((d) => fs.existsSync(path.join(d, "SKILL.md")));
+  if (!copies.length) die('no installed skill found. Run "npx srm-report install", or pass --dir PATH.');
+  const stored = (d) => {
+    const f = path.join(d, "INSTALL_HASH");
+    return fs.existsSync(f) ? fs.readFileSync(f, "utf8").trim() : null;
+  };
+  const changed = copies.filter((d) => skillHash(d) !== stored(d));
+  if (changed.length > 1 && new Set(changed.map(skillHash)).size > 1) {
+    die(`more than one copy has changed. Pick one with --dir, after merging what you want to keep:\n  ${changed.join("\n  ")}`);
+  }
+  return changed[0] || copies[0];
 }
 
 function listFiles(dir, base = dir, out = []) {
@@ -103,8 +176,8 @@ function scanAdded(diff) {
 }
 
 function contribute(opts) {
-  const dir = path.resolve(opts.dir || DEFAULT_DIR);
-  if (!fs.existsSync(path.join(dir, "SKILL.md"))) die(`no skill found at ${dir}`);
+  const dir = findCopy(opts);
+  console.log(`Using the copy at ${dir}`);
   if (tryRun("gh", ["auth", "status"]) === null) die('the GitHub CLI is missing or signed out. Install gh and run "gh auth login".');
   if (opts.yes && !opts.title) die('--yes needs --title "what improved"');
 

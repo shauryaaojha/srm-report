@@ -29,6 +29,8 @@ See `CONTRIBUTING.md`.
 
 ## How this skill works
 
+This skill works with any agent that reads `SKILL.md`. Paths such as `scripts/rptlib.py` are relative to this file's folder, which differs between agents, so resolve them from where you loaded this file. Recipes find the folder themselves; if one can't, set `SRM_REPORT_SKILL`.
+
 The user attaches the template they want. **The template is the spec.** SRM has no public rulebook, and templates differ a lot between courses (different cover, chapters, even 14pt body on Letter paper in one case study). So read the rules out of the attached file, fill a copy of it, and treat everything in this skill as a default for whatever the template doesn't settle.
 
 When two sources disagree, this order decides:
@@ -81,6 +83,8 @@ python -X utf8 scripts/render_pages.py report.pdf pages 1,2,3,4 70 # chosen page
 ```
 
 The Word pass fills the TOC and lists with real page numbers, exports the PDF and reports any table crossing a page. Work on a scratch copy, since the user often has the file open. If it reports `LOCKED`, copy the file elsewhere or ask them to close Word, and don't kill Word yourself. It can take a few minutes on a long report. If it stops with a COM error, run it once more; if the error repeats, the .docx is the problem. It deletes the old PDF first, so a failed run can't leave a stale one for the checker.
+
+The Word pass needs Microsoft Word on Windows, in a session that can start it. If you run in a sandbox, in the cloud or on Linux or macOS and can't reach Word, build the .docx, say that the pass hasn't run, and give the user the exact command to run on their machine or ask for the sandbox to be relaxed. Don't substitute another converter and call the result final, because page numbers and table breaks would differ from what gets printed.
 
 Put the template's numbers in `checks.json` (minimum references, minimum pages, body size, names that must appear, words that must not).
 

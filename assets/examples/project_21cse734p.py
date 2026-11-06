@@ -15,7 +15,13 @@ raises KeyError naming the missing line: run inspect_template.py and adjust the 
 """
 import json, os, re, sys
 
-SKILL = os.environ.get("SRM_REPORT_SKILL", os.path.expanduser("~/.claude/skills/srm-report"))
+# Agents keep skills in different folders. This file may also have been copied into a project.
+HERE = os.path.dirname(os.path.abspath(__file__))
+PLACES = [os.environ.get("SRM_REPORT_SKILL"), os.path.join(HERE, "..", "..")] + [
+    os.path.expanduser(f"~/{p}/skills/srm-report") for p in (".agents", ".claude", ".gemini/config", ".cline", ".kiro")]
+SKILL = next((p for p in PLACES if p and os.path.exists(os.path.join(p, "scripts", "rptlib.py"))), None)
+if SKILL is None:
+    sys.exit("Can't find the srm-report skill. Set SRM_REPORT_SKILL to its folder.")
 sys.path.insert(0, os.path.join(SKILL, "scripts"))
 from docx.oxml import parse_xml
 from docx.oxml.ns import qn

@@ -1,7 +1,7 @@
 {
   "name": "srm-report",
-  "version": "1.0.0",
-  "description": "Claude Code skill that builds a print-ready SRM Institute report (.docx and .pdf) from the template you attach.",
+  "version": "1.1.0",
+  "description": "Skill for AI coding agents (Claude Code, Codex, Cursor, Antigravity and more) that builds a print-ready SRM Institute report (.docx and .pdf) from the template you attach.",
   "bin": {
     "srm-report": "bin/srm-report.js"
   },
@@ -15,8 +15,13 @@
     "CONTRIBUTING.md"
   ],
   "keywords": [
+    "agent-skills",
     "claude-code",
-    "claude-skill",
+    "codex",
+    "cursor",
+    "antigravity",
+    "gemini-cli",
+    "copilot",
     "srm",
     "srmist",
     "report",
