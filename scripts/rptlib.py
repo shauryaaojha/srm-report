@@ -580,7 +580,7 @@ class Report:
         for level, name, bold, left in ((1, "toc 1", True, 0), (2, "toc 2", False, 240), (3, "toc 3", False, 480), (4, "toc 4", False, 0)):
             sid = f"TOC{level}"
             for st in list(self.d.styles):
-                if st.style_id == sid or st.name.lower() == name:
+                if st.style_id == sid or (st.name or "").lower() == name:   # some templates carry unnamed styles
                     self.d.styles.element.remove(st.element)
             b = "1" if bold else "0"
             self.d.styles.element.append(parse_xml(
@@ -644,14 +644,17 @@ class Report:
 
     # ---------------- generated content ----------------
     def _runs(self, p, text, bold=False, italic=False, size=None):
-        for seg in re.split(r"(\*\*[^*]+\*\*)", self._resolve(text)):
+        # **bold** and *italic* (IEEE book and standard titles). A star touching a word character, as in "O*E2"
+        # or "S*", is left alone.
+        for seg in re.split(r"(\*\*[^*]+\*\*|(?<![\w*])\*[^*\s][^*]*?\*(?![\w*]))", self._resolve(text)):
             if not seg:
                 continue
             b = seg.startswith("**") and seg.endswith("**")
-            r = p.add_run(seg[2:-2] if b else seg)
+            it = not b and len(seg) > 2 and seg.startswith("*") and seg.endswith("*")
+            r = p.add_run(seg[2:-2] if b else seg[1:-1] if it else seg)
             if b or bold:
                 r.bold = True
-            if italic:
+            if italic or it:
                 r.italic = True
             if size:
                 r.font.size = Pt(size)
@@ -781,11 +784,15 @@ class Report:
         lines = list(lines)
         while lines and not lines[-1].strip():
             lines.pop()
-        limit = int(n.get("max_lines", 55)); parts = []; cur = []
+        # Budget in printed rows, not source lines: a line longer than `wrap` characters wraps inside the box and
+        # takes 2+ rows, so counting source lines alone lets a box outgrow the page. Set wrap to the number of code
+        # characters that fit across the text width (about 75 for 10pt Consolas on A4 with 1.5"/1" margins).
+        limit = int(n.get("max_lines", 55)); wrap = int(n.get("wrap", 0)) or None; parts = []; cur = []; rows = 0
         for ln in lines:
             cur.append(ln)
-            if (len(cur) >= limit - 12 and not ln.strip()) or len(cur) >= limit:
-                parts.append(cur); cur = []
+            rows += max(1, -(-len(ln) // wrap)) if wrap else 1
+            if (rows >= limit - 12 and not ln.strip()) or rows >= limit:
+                parts.append(cur); cur = []; rows = 0
         if cur:
             parts.append(cur)
         width = self.s["page_w"] - self.s["left"] - self.s["right"] - 0.05
@@ -799,11 +806,13 @@ class Report:
             for j, ln in enumerate(chunk):
                 p = cell.paragraphs[0] if j == 0 else cell.add_paragraph()
                 p.style = self.d.styles["RptCode"]
-                r = p.add_run(ln or " "); r.font.name = "Courier New"
-                r._r.get_or_add_rPr().rFonts.set(qn("w:cs"), "Courier New")
+                mono = self.s.get("code_font", "Courier New")   # some templates ask for Consolas
+                r = p.add_run(ln or " "); r.font.name = mono
+                r._r.get_or_add_rPr().rFonts.set(qn("w:cs"), mono)
             cap = n["caption"]
             if len(parts) > 1:
-                suffix = f'({"abcdefghijkl"[i]})'
+                abc = "abcdefghijklmnopqrstuvwxyz"   # a long module can need more than 26 parts: aa, ab, ...
+                suffix = f'({abc[i] if i < 26 else abc[i // 26 - 1] + abc[i % 26]})'
                 if ":" in cap:
                     a, b = cap.split(":", 1); cap = f"{a}{suffix}:{b}"
                 else:
@@ -813,7 +822,7 @@ class Report:
     def add_references(self, title="REFERENCES"):
         self._p("RptChapter", title)
         for k in sorted(self.cite_no, key=self.cite_no.get):
-            p = self._p("RptRef"); p.add_run(f"[{self.cite_no[k]}]\t{self.refs[k]}")
+            p = self._p("RptRef"); p.add_run(f"[{self.cite_no[k]}]\t"); self._runs(p, self.refs[k])
             p.paragraph_format.left_indent = Inches(0.42); p.paragraph_format.first_line_indent = Inches(-0.42)
             p.paragraph_format.tab_stops.add_tab_stop(Inches(0.42))
 

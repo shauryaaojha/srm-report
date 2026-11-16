@@ -103,3 +103,19 @@ Chapter numbering jumps from 3 to 6; "2.5" used twice; "EXECTION"; "compiles wit
 | Shell errors on long inline scripts | Quoting in heredocs | Write the script to a file first |
 | Can't read a source PDF through a web fetch | Binary file | Save it and read it with PyMuPDF |
 | Word windows popping up | Visible automation | Keep `Visible=false`; never kill by window title |
+| `'NoneType' object has no attribute 'lower'` in `_toc_styles` | Template carries a style with no name | `_toc_styles` treats a missing name as "" |
+| IEEE references print literal `*Title*` | References were added as one raw run | `*italic*` is supported in body text and references; a star touching a word ("O*E2", "S*") stays literal |
+| Cover spills onto a second page with many students | Each cloned student line keeps the template's large spacing-before and 1.65 line height | Clone with spacing-before 0 and line about 1.1, drop the template's empty lines after the list, tighten the lines below; scale the logo only if still needed |
+| Yellow highlight left on the filled cover | Template marks placeholders with `w:highlight` | Remove highlights from the filled cover paragraphs |
+| Wide gaps in the justified bonafide sentence | Six ALL-CAPS names with register numbers can't be justified evenly | Use Title Case names inside the sentence, unless the template insists on capitals |
+| Checker fails "BONAFIDE CERTIFICATE and EXAMINER 2" on a case study | The template has no examiner lines | The default pair is skipped when "EXAMINER 2" never appears; add the template's last bonafide line to `same_page` in checks.json |
+| Bold names in the bonafide sentence come out plain | `set_text` keeps only one run's formatting | Clear the paragraph with `set_text(p, "")`, then add parts with `add_run_like(p, text, model_run, bold=...)` |
+| Justified bonafide line with huge gaps after bolding | Long bold ALL-CAPS title words | Title Case for the title inside the sentence; keep it bold and in quotes |
+| Report too long because each code listing fills a page | Listings are kept whole, so a long one leaves the rest of the previous page empty | List shared blocks once, drop "!" separators and unused shut-down interfaces, and set two short listings side by side in one two-cell table at 7pt |
+| LoF and LoT each take a mostly empty page | Each front heading has a page break | Put the LoT heading on the LoF page in a style without page break and include that style in the TOC field (the checker will then flag "LIST OF TABLES" not at the top, which is expected) |
+| Centred cover lines look shifted left of the lines below | Template gives the title and student lines asymmetric left/right indents | Remove `w:ind` from the centred cover paragraphs so every line centres on the page axis |
+| Code boxes split across pages although each has under 55 source lines | Long source lines wrap inside the box, so the printed height is far more than the line count | Give code nodes `"wrap": <chars across the text width>` (72 is safe for Consolas 10pt on A4 with 1.5"/1" margins) and `max_lines` about 56; rptlib now budgets printed rows. 62 rows split 19 boxes; 56 split none |
+| Code listing captions run past "(l)" | Suffix letters stopped at 12 parts | rptlib now continues a-z, then aa, ab |
+| Checker FAILs body size at 10pt on a report with a long code appendix | Consolas/Courier text outnumbered the 12pt body | The checker now leaves code fonts (and Cambria Math) out of the size and font counts; add others with `"code_fonts"` |
+| "SCIENCE ANDTECHNOLOGY" on the cover | Negative character spacing on template runs | Remove `w:spacing` from cover run properties along with `w:ind` |
+| Checker warns first person for "N(0, I)" in an equation | The identity matrix I matches the first-person pattern | Expected; read the context and ignore it |
