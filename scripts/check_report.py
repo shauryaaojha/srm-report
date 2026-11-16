@@ -71,11 +71,15 @@ def main(docx_path, pdf_path, cfg):
 
     want = cfg.get("font", "Times New Roman").replace(" ", "").lower()
     fonts = Counter(); sizes = Counter()
+    # Code fonts are left out of both counts: an appendix holding the full source (some templates ask for it, in
+    # Consolas 10pt) can outweigh the body text and make the most common size look wrong. "code_fonts" adds names.
+    mono = "|".join(["courier", "consolas", "mono", "menlo", "cambriamath"] + [re.escape(f.lower()) for f in cfg.get("code_fonts", [])])
     for sp in spans(pdf):
-        fonts[sp["font"].split("+")[-1].split(",")[0].split("-")[0]] += len(sp["text"])
-        if len(sp["text"].strip()) > 3:
+        name = sp["font"].split("+")[-1].split(",")[0].split("-")[0]
+        fonts[name] += len(sp["text"])
+        if len(sp["text"].strip()) > 3 and not re.search(mono, name, re.I):
             sizes[round(sp["size"] * 2) / 2] += len(sp["text"])
-    other = {k: v for k, v in fonts.items() if want not in k.lower().replace("psmt", "").replace("ps", "") and not re.search("courier|symbol|wingdings", k, re.I)}
+    other = {k: v for k, v in fonts.items() if want not in k.lower().replace("psmt", "").replace("ps", "") and not re.search(mono + "|symbol|wingdings", k, re.I)}
     total = sum(fonts.values()) or 1
     report("WARN" if sum(other.values()) > total * 0.002 else "ok", f"font is {cfg.get('font', 'Times New Roman')} (code may use Courier)", str(other) if other else "")
     top = sizes.most_common(1)[0][0] if sizes else 0
@@ -182,9 +186,13 @@ def main(docx_path, pdf_path, cfg):
     report("FAIL" if misplaced else "ok", "main headings start at the top of a page", "; ".join(misplaced))
 
     # Fixed pages that must stay whole. Text can overflow silently, so look at the rendered pages.
-    pairs = [["BONAFIDE CERTIFICATE", "EXAMINER 2"]] + cfg.get("same_page", [])
-    for a, b in pairs:
+    # The default pair fits project templates. Course case-study templates have no examiner lines, so the default is
+    # checked only when "EXAMINER 2" is printed at all; give such templates their own pair in checks.json "same_page".
+    pairs = [["BONAFIDE CERTIFICATE", "EXAMINER 2", True]] + [p + [False] for p in cfg.get("same_page", [])]
+    for a, b, default in pairs:
         on_a = [i for i, t in enumerate(pdf_text) if a in t]; on_b = [i for i, t in enumerate(pdf_text) if b in t]
+        if default and not on_b:
+            continue
         if on_a or on_b:
             ok = bool(set(on_a) & set(on_b))
             report("ok" if ok else "FAIL", f"'{a}' and '{b}' are on one page", "" if ok else f"physical pages {[x + 1 for x in on_a]} and {[x + 1 for x in on_b]}")
